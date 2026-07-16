@@ -1,0 +1,46 @@
+# Xcode Project Files
+*.xcodeproj
+*.xcworkspace
+*.playground
+*.xcarchive
+
+# Build Artifacts
+build/
+DerivedData/
+*.build
+*.app
+*.ipa
+*.dSYM
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Dependencies
+*.framework
+
+# IDE
+.DS_Store
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Runtime
+*.log
+*.o
+*.so
+
+# Application Outputs
+*.txt
+.env
+.env.local
+
+# User-specific
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Temporary Files
+tmp/
+temp/

@@ -12,6 +12,7 @@ class MergeRulesEngine: ObservableObject {
     ///   - diskTime: Reading time from disk
     ///   - lastDiskSync: Last time disk was synced
     /// - Returns: The resolved reading time and merge rule used
+    @discardableResult
     func resolveMerge(
         articleId: UUID,
         memoryTime: TimeInterval,

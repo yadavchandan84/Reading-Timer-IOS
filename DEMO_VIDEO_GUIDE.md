@@ -25,18 +25,18 @@ This guide explains how to create a compelling demo video showcasing all Philone
    - Screen recording captures tap
    - Show share menu appearing
 
-3. **Select Philonet Reading Timer**
-   - Scroll through share options
-   - Tap "Philonet Reading Timer"
-   - Show confirmation
+3. **Select Philonet Reader**
+   - Scroll through share options (enable it under *More* beforehand so it's visible)
+   - Tap "Philonet Reader"
+   - Show the "Saved to Philonet Reader" confirmation
 
 4. **Return to App**
-   - Show app launching
+   - Switch to the app (the share extension doesn't open it automatically)
    - Article appears in list at top
    - Show article details (title, domain, reading time 0s)
 
 **Narration:**
-"First, we share an article from Safari. I'm reading this article about [topic] and want to track my time. I tap Share, select Philonet Reading Timer, and the article is instantly saved. Notice it shows up at the top of our reading list with zero reading time since we just added it."
+"First, we share an article from Safari. I'm reading this article about [topic] and want to track my time. I tap Share, select Philonet Reader, and the article is saved. When I switch back to the app, it's in the list. Notice it shows up at the top of our reading list with zero reading time since we just added it."
 
 ### Segment 3: Reading an Article (2 minutes)
 
@@ -307,7 +307,7 @@ Feel free to adapt this script for your narration:
 "Hi! This is Philonet Reading Timer, an iOS app that tracks your reading time with built-in smart conflict resolution. Let me walk you through all its features."
 
 *[Safari Share]*
-"First, I'll share an article from Safari. I tap Share, select Philonet Reading Timer, and the article is instantly saved to my reading list."
+"First, I'll share an article from Safari. I tap Share, select Philonet Reader, and when I switch back to the app it's in my reading list."
 
 *[Reading Article]*
 "Now I'll open the article to read it. The timer automatically starts, and I can see it counts up in real time. I can pause whenever I want, and if I need a break, I can resume later. Here's the smart part - when I switch to another app..."

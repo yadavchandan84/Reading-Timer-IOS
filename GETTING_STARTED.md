@@ -2,17 +2,16 @@
 
 ## Overview
 
-You now have a **complete, production-ready iOS app** for tracking reading time. All source code, documentation, and guides are included.
+An iOS app for tracking reading time. The Xcode project is generated from `project.yml` with XcodeGen, so there's no manual project setup.
+
+> Building requires a Mac with Xcode 14+. Verify with ⌘B / ⌘U after generating the project.
 
 ## 📁 What You Have
 
-### Swift Source Code (Ready to Use)
-- **8 Swift files** (~2,000 lines of production code)
-- **11 unit tests** covering all merge rules
-- All files organized in proper directory structure
-- SwiftUI views with proper architecture
-- Services with singleton patterns
-- Complete error handling
+### Swift Source Code
+- **11 Swift source files** across 2 targets (app + Share Extension)
+- **10 unit tests** covering merge rules, crash detection and persistence
+- `project.yml` defining the app, share extension and test targets
 
 ### Documentation (8 Comprehensive Guides)
 1. **README.md** - Project overview, features, architecture
@@ -42,11 +41,9 @@ You now have a **complete, production-ready iOS app** for tracking reading time.
 **For developers who want to get running quickly**
 
 1. Read: **QUICK_START.md** (5 minutes)
-2. Create Xcode project
-3. Copy Swift files
-4. Add frameworks (WebKit, UserNotifications)
-5. Configure URL scheme
-6. Build and run
+2. `brew install xcodegen && xcodegen generate`
+3. Open `PhilonetReadingTimer.xcodeproj`, set your Team on both targets
+4. Build and run (⌘R)
 
 ### Path 2: Complete Setup (1 hour)
 **For developers who want detailed understanding**
@@ -79,32 +76,28 @@ You now have a **complete, production-ready iOS app** for tracking reading time.
 ## 📊 File Structure
 
 ```
-PhilonetReadingTimer/
+Reading-Timer-IOS/
 │
-├── 📁 PhilonetReadingTimer/                 # Main app folder
-│   ├── 📁 Models/
-│   │   └── Article.swift                    # Data models (4 structs)
-│   │
-│   ├── 📁 Services/
-│   │   ├── TimerService.swift              # Timer with lifecycle
-│   │   ├── PersistenceService.swift        # File storage
-│   │   └── MergeRulesEngine.swift          # Conflict resolution
-│   │
-│   ├── 📁 Views/
-│   │   ├── ContentView.swift               # Article list
-│   │   ├── ArticleReaderView.swift         # Web view + timer
-│   │   └── DebugPanelView.swift            # Debug interface
-│   │
-│   ├── 📁 Utilities/
-│   │   └── Extensions.swift                # Helper functions
-│   │
-│   ├── 📁 ShareExtension/
-│   │   └── ShareViewController.swift       # Safari share
-│   │
-│   └── PhilonetReadingTimerApp.swift       # App entry point
-│
-├── 📁 PhilonetReadingTimerTests/           # Unit tests
-│   └── PhilonetReadingTimerTests.swift     # 11 test cases
+├── project.yml                             # XcodeGen spec (targets, plists, entitlements)
+├── 📁 PhilonetReadingTimer/
+│   ├── 📁 PhilonetReadingTimer/            # App target
+│   │   ├── Models/Article.swift            # Data models (4 structs)
+│   │   ├── Services/
+│   │   │   ├── TimerService.swift          # Timer with lifecycle
+│   │   │   ├── PersistenceService.swift    # File storage + share import
+│   │   │   └── MergeRulesEngine.swift      # Conflict resolution
+│   │   ├── Views/
+│   │   │   ├── ContentView.swift           # Article list + Add sheet
+│   │   │   ├── ArticleReaderView.swift     # Web view + timer
+│   │   │   └── DebugPanelView.swift        # Debug interface
+│   │   ├── Utilities/Extensions.swift      # Helper functions
+│   │   └── PhilonetReadingTimerApp.swift   # Entry point, URL scheme
+│   ├── 📁 PhilonetShareExtension/          # Share Extension target
+│   │   └── ShareViewController.swift
+│   ├── 📁 Shared/                          # Compiled into both targets
+│   │   └── SharedInbox.swift               # App Group hand-off
+│   ├── 📁 PhilonetReadingTimerTests/       # Unit test target (10 tests)
+│   └── 📁 Config/                          # Generated plists + entitlements
 │
 ├── 📄 README.md                            # Project overview
 ├── 📄 QUICK_START.md                       # 5-minute guide
@@ -115,33 +108,21 @@ PhilonetReadingTimer/
 ├── 📄 DEMO_VIDEO_GUIDE.md                  # Video creation
 ├── 📄 PROJECT_STATUS.md                    # Completion status
 │
-├── .gitignore                              # Git configuration
-└── Package.swift                           # Swift package config
+└── .gitignore                              # Ignores generated .xcodeproj
 ```
 
 ## 🚀 Quick Setup Instructions
 
 ### Minimum Requirements
-- Xcode 14.0+
-- macOS 12+
+- Xcode 14.0+ on macOS 12+
+- XcodeGen (`brew install xcodegen`)
 - iOS 15.0+ simulator or device
 
-### 3-Step Setup
+### Setup
 ```bash
-# Step 1: Create project
-File → New → Project → iOS App (SwiftUI)
-
-# Step 2: Copy files
-Drag Swift files to Xcode (keep folder structure)
-
-# Step 3: Add frameworks
-Build Phases → Link Binary → Add WebKit, UserNotifications
-
-# Step 4: Configure URL
-Project → Info → URL Types → Add "philonet-open"
-
-# Step 5: Run
-⌘ + R (or Product → Run)
+xcodegen generate                    # creates PhilonetReadingTimer.xcodeproj
+open PhilonetReadingTimer.xcodeproj
+# Set Team on PhilonetReadingTimer + PhilonetShareExtension, then ⌘R
 ```
 
 ## 📚 Documentation Guide
@@ -241,7 +222,8 @@ PhilonetReadingTimer/
 
 ### Data Storage Location
 ```
-~/Library/Containers/com.yourcompany.PhilonetReadingTimer/Data/Documents/articles.json
+<app sandbox>/Documents/articles.json
+# Simulator: xcrun simctl get_app_container booted com.philonet.readingtimer data
 ```
 
 ## 💡 Key Implementation Details
@@ -259,10 +241,10 @@ PhilonetReadingTimer/
 - Audit: All merges logged in debug panel
 
 ### Share Extension
-- Separate app target (iOS 15+)
-- Intercepts Safari shares
-- Uses URL scheme to return to app
-- Adds article to list automatically
+- Separate target (`PhilonetShareExtension`), embedded in the app
+- Receives URLs (or text containing a link) from Safari and other apps
+- Queues the link in the App Group (`SharedInbox`); extensions can't launch the host app
+- The app imports queued links each time it becomes active
 
 ## 🎨 UI Components
 
@@ -329,10 +311,9 @@ Console output shows:
 3. Follow the documentation
 
 ### Short Term (Today)
-1. Create Xcode project
-2. Add Swift files
-3. Configure frameworks and URL scheme
-4. Build and run on simulator
+1. Run `xcodegen generate`
+2. Set signing Team on both targets
+3. Build, run tests (⌘U) and run on simulator
 
 ### Medium Term (This week)
 1. Test all features
@@ -417,10 +398,13 @@ Console output shows:
 ## 🤔 FAQ
 
 **Q: Do I need to modify the code?**
-A: No! Code is ready to use. Just set up Xcode project and copy files.
+A: No. Generate the project with XcodeGen and set your signing Team. If the bundle ID/App Group is taken, change it in `project.yml` and `SharedInbox.appGroupID`.
+
+**Q: Can I build on Windows?**
+A: No. iOS builds need Xcode on macOS.
 
 **Q: Can I run on simulator?**
-A: Yes! All code works on iOS 15+ simulator. Share extension works too (limited).
+A: Yes, iOS 15+. The Share Extension works in simulator Safari; the "+" button is quicker for testing.
 
 **Q: How do I test merge rules?**
 A: Open debug panel, switch apps, check the History tab shows merges.
@@ -429,10 +413,7 @@ A: Open debug panel, switch apps, check the History tab shows merges.
 A: 30 minutes for basic setup, 1 hour for full setup and testing.
 
 **Q: Is this production-ready?**
-A: Yes! Code includes error handling, tests, and documentation.
-
-**Q: Can I publish to App Store?**
-A: Yes! Code is ready for App Store submission.
+A: It's an assignment-scale app. Build it, run the tests and do the manual checklist before relying on it. App Store submission would also need an app icon and your own bundle IDs.
 
 ## 📞 Need Help?
 

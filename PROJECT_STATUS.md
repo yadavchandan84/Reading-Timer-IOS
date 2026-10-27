@@ -20,13 +20,13 @@
 - ✅ UI Components - Buttons, cards, info displays
 
 ### 4. Share Extension
-- ✅ `ShareViewController.swift` - Safari integration
-- ✅ URL scheme handling - `philonet-open://`
-- ✅ App delegation - Launch from Safari
+- ✅ `PhilonetShareExtension/ShareViewController.swift` - Safari integration (own target)
+- ✅ `Shared/SharedInbox.swift` - App Group hand-off to the app
+- ✅ URL scheme handling - `philonet-open://add?url=<encoded>`
 
 ### 5. App Foundation
-- ✅ `PhilonetReadingTimerApp.swift` - App entry point
-- ✅ App lifecycle management
+- ✅ `PhilonetReadingTimerApp.swift` - App entry point, URL scheme, share import
+- ✅ `project.yml` - XcodeGen spec (app, extension, tests, plists, entitlements)
 - ✅ WebKit integration
 
 ### 6. Utilities
@@ -54,33 +54,26 @@
 ## Project Structure
 
 ```
-PhilonetReadingTimer/
+Reading-Timer-IOS/
+├── project.yml (XcodeGen spec)
 ├── PhilonetReadingTimer/
-│   ├── Models/
-│   │   └── Article.swift (Models, enums, structs)
-│   ├── Services/
-│   │   ├── TimerService.swift (Background pause/resume)
-│   │   ├── PersistenceService.swift (File storage)
-│   │   └── MergeRulesEngine.swift (Conflict resolution)
-│   ├── Views/
-│   │   ├── ContentView.swift (Article list)
-│   │   ├── ArticleReaderView.swift (Web view + timer)
-│   │   └── DebugPanelView.swift (Debug interface)
-│   ├── Utilities/
-│   │   └── Extensions.swift (Helper functions)
-│   ├── ShareExtension/
-│   │   └── ShareViewController.swift (Safari share)
-│   └── PhilonetReadingTimerApp.swift (App entry)
-├── PhilonetReadingTimerTests/
-│   └── PhilonetReadingTimerTests.swift (Unit tests)
-├── README.md
-├── SETUP.md
-├── FEATURES.md
-├── ARCHITECTURE.md
-├── XCODE_SETUP.md
-├── DEMO_VIDEO_GUIDE.md
-├── QUICK_START.md
-├── Package.swift
+│   ├── PhilonetReadingTimer/ (app target)
+│   │   ├── Models/Article.swift (Models, structs)
+│   │   ├── Services/
+│   │   │   ├── TimerService.swift (Background pause/resume)
+│   │   │   ├── PersistenceService.swift (File storage)
+│   │   │   └── MergeRulesEngine.swift (Conflict resolution)
+│   │   ├── Views/
+│   │   │   ├── ContentView.swift (Article list + Add sheet)
+│   │   │   ├── ArticleReaderView.swift (Web view + timer)
+│   │   │   └── DebugPanelView.swift (Debug interface)
+│   │   ├── Utilities/Extensions.swift (Helper functions)
+│   │   └── PhilonetReadingTimerApp.swift (App entry)
+│   ├── PhilonetShareExtension/ShareViewController.swift (Safari share)
+│   ├── Shared/SharedInbox.swift (App Group hand-off)
+│   ├── PhilonetReadingTimerTests/PhilonetReadingTimerTests.swift
+│   └── Config/ (generated plists + entitlements)
+├── *.md (documentation)
 └── .gitignore
 ```
 
@@ -124,23 +117,22 @@ PhilonetReadingTimer/
 
 | Metric | Count |
 |--------|-------|
-| Swift Files | 8 |
+| Swift Files | 11 (+1 test file) |
+| Targets | 3 (app, share extension, tests) |
 | Models | 4 |
 | Services | 3 |
 | Views | 3 |
-| Test Cases | 11 |
-| Documentation Pages | 8 |
-| Lines of Code | ~2,000 |
-| Features | 10+ |
+| Test Cases | 10 |
+| Documentation Pages | 11 |
 
 ## How to Proceed
 
-### Phase 1: Xcode Project Setup (1 hour)
-1. Follow `XCODE_SETUP.md` instructions
-2. Create new iOS project
-3. Add all Swift files
-4. Configure frameworks (WebKit, UserNotifications)
-5. Set up URL scheme
+### Phase 1: Xcode Project Setup (10 minutes, on a Mac)
+1. `brew install xcodegen`
+2. `xcodegen generate` in the repo root
+3. Open `PhilonetReadingTimer.xcodeproj`
+4. Set signing Team on `PhilonetReadingTimer` and `PhilonetShareExtension`
+5. See `XCODE_SETUP.md` if signing or App Group fails
 
 ### Phase 2: Testing & Verification (1 hour)
 1. Build project (⌘ + B)
@@ -230,7 +222,7 @@ Supported in WKWebView:
 
 ## Testing Coverage
 
-### Unit Tests (11 tests)
+### Unit Tests (10 tests)
 - ✅ Merge rules validation
 - ✅ Backward time prevention
 - ✅ Double counting detection
@@ -266,9 +258,9 @@ Supported in WKWebView:
 
 ## Next Steps for Submission
 
-1. **Open Xcode and Setup**
-   - Follow XCODE_SETUP.md
-   - ~30 minutes
+1. **Generate and open the project**
+   - `xcodegen generate`, then follow XCODE_SETUP.md
+   - ~10 minutes
 
 2. **Build and Test**
    - Verify all features
@@ -323,6 +315,4 @@ See XCODE_SETUP.md "Troubleshooting" section for:
 
 ---
 
-**Status**: Ready for Xcode project setup and testing
-**Quality**: Production-ready code with comprehensive testing and documentation
-**Timeline**: 2-3 hours to completion
+**Status**: Code fixed for iOS 15+; project generated via XcodeGen. Not yet built/tested on a Mac. Run ⌘B / ⌘U and the manual checks before submitting.

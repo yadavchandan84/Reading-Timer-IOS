@@ -1,47 +1,38 @@
 import SwiftUI
-import WebKit
 
 @main
 struct PhilonetReadingTimerApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
+    @Environment(\.scenePhase) private var scenePhase
+    private let persistenceService = PersistenceService.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
-        }
-    }
-}
-
-class AppDelegate: UIResponder, UIApplicationDelegate {
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
-    ) -> Bool {
-        // Request notification permissions if needed
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
-        return true
-    }
-    
-    func application(
-        _ app: UIApplication,
-        open url: URL,
-        options: [UIApplication.OpenURLOptionsKey : Any] = [:]
-    ) -> Bool {
-        // Handle URLs from Share Extension
-        if url.scheme == "philonet-open" {
-            if let host = url.host, let urlToOpen = URL(string: host) {
-                DispatchQueue.main.async {
-                    PersistenceService.shared.addArticle(url: urlToOpen)
+                .onAppear { persistenceService.importPendingSharedArticles() }
+                // Custom URL scheme: philonet-open://add?url=<percent-encoded URL>
+                // (With the SwiftUI lifecycle, AppDelegate's open-URL callback is
+                // never called, so URLs must be handled here.)
+                .onOpenURL { url in
+                    if let articleURL = Self.articleURL(from: url) {
+                        persistenceService.addArticle(url: articleURL)
+                    }
                 }
+        }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active {
+                // Pick up anything saved by the Share Extension.
+                persistenceService.importPendingSharedArticles()
             }
         }
-        return true
     }
-}
 
-// Enable WebKit for loading web content
-extension WKWebView {
-    override open var safeAreaInsets: UIEdgeInsets {
-        return UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+    static func articleURL(from url: URL) -> URL? {
+        guard url.scheme == "philonet-open",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let value = components.queryItems?.first(where: { $0.name == "url" })?.value,
+              let articleURL = URL(string: value),
+              articleURL.scheme == "http" || articleURL.scheme == "https"
+        else { return nil }
+        return articleURL
     }
 }

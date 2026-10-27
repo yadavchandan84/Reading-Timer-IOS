@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct DebugPanelView: View {
-    @StateObject private var mergeEngine = MergeRulesEngine()
+    // Must observe the same engine PersistenceService uses, otherwise history is always empty.
+    @ObservedObject private var mergeEngine = PersistenceService.shared.mergeRulesEngine
     @State private var selectedTab = 0
     @Environment(\.dismiss) var dismiss
     
@@ -16,7 +17,8 @@ struct DebugPanelView: View {
                 .pickerStyle(.segmented)
                 .padding()
                 
-                TabView(selection: $selectedTab) {
+                Group {
+                    if selectedTab == 0 {
                     // Merge Rules Explanation
                     VStack(alignment: .leading, spacing: 16) {
                         ScrollView {
@@ -51,8 +53,7 @@ struct DebugPanelView: View {
                             .padding()
                         }
                     }
-                    .tag(0)
-                    
+                    } else if selectedTab == 1 {
                     // Merge History
                     VStack {
                         if mergeEngine.mergeHistory.isEmpty {
@@ -84,8 +85,7 @@ struct DebugPanelView: View {
                             .padding()
                         }
                     }
-                    .tag(1)
-                    
+                    } else {
                     // Conflicts
                     VStack {
                         if mergeEngine.conflicts.isEmpty {
@@ -109,8 +109,9 @@ struct DebugPanelView: View {
                             }
                         }
                     }
-                    .tag(2)
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .navigationTitle("Debug Panel")
             .navigationBarTitleDisplayMode(.inline)
@@ -287,6 +288,8 @@ struct ConflictItemView: View {
     }
 }
 
-#Preview {
-    DebugPanelView()
+struct DebugPanelView_Previews: PreviewProvider {
+    static var previews: some View {
+        DebugPanelView()
+    }
 }

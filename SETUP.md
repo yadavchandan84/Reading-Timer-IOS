@@ -1,125 +1,39 @@
-## Project Setup Instructions
+## Project Setup
 
-This document contains step-by-step instructions to set up the Xcode project from the Swift files provided.
+The project is defined in `project.yml` and generated with XcodeGen. You don't need to create a project, add targets or edit Info.plist by hand.
 
-### Quick Start
+### Steps (on a Mac)
 
-1. Open Xcode
-2. Create a new iOS App project:
-   - File → New → Project
-   - Select iOS
-   - Choose App template
-   - Project Name: `PhilonetReadingTimer`
-   - Organization Identifier: `com.yourcompany`
-   - Interface: SwiftUI
-   - Life Cycle: SwiftUI App
-   
-3. Copy all Swift files to the Xcode project:
-   - Drag and drop files maintaining folder structure
-   - Check "Copy items if needed"
-   - Select "Create groups"
+```bash
+brew install xcodegen
+cd Reading-Timer-IOS
+xcodegen generate
+open PhilonetReadingTimer.xcodeproj
+```
 
-4. Configure targets:
-   
-   **Main App Target:**
-   - Minimum Deployment: iOS 15.0
-   - Add WebKit framework
-   - Add UserNotifications framework
-   
-   **Share Extension Target:**
-   - File → New → Target
-   - Select Share Extension
-   - Name: `ShareExtension`
-   - Embed in: PhilonetReadingTimer
-   - Replace ShareViewController.swift with our code
+1. Set your Team under **Signing & Capabilities** for both `PhilonetReadingTimer` and `PhilonetShareExtension`.
+2. Choose an iPhone simulator and press ⌘R. Press ⌘U to run tests.
 
-5. Configure Info.plist:
-   
-   Add these keys to main app Info.plist:
-   ```xml
-   <key>NSBonjourServices</key>
-   <array>
-       <string>_philonet._tcp</string>
-   </array>
-   <key>NSLocalNetworkUsageDescription</key>
-   <string>Philonet uses local network for article sharing</string>
-   <key>NSBonjourServiceTypes</key>
-   <array>
-       <string>_philonet._tcp</string>
-   </array>
-   ```
+### What `project.yml` configures
 
-6. Configure URL Scheme:
-   - Select Project → PhilonetReadingTimer Target
-   - Info tab
-   - URL Types section
-   - Add new URL Type:
-     - Identifier: `philonet-open`
-     - URL Scheme: `philonet-open`
+| Setting | Value |
+|---------|-------|
+| Deployment target | iOS 15.0 |
+| App bundle ID | `com.philonet.readingtimer` |
+| Extension bundle ID | `com.philonet.readingtimer.ShareExtension` |
+| App Group (both targets) | `group.com.philonet.readingtimer` |
+| URL scheme | `philonet-open://add?url=<percent-encoded URL>` |
+| Share activation | web URLs (max 1) and text |
+| Frameworks | WebKit (SwiftUI/UIKit/Foundation are implicit) |
 
-7. Configure Share Extension Info.plist:
-   
-   Add to ShareExtension Info.plist:
-   ```xml
-   <key>NSExtensionAttributes</key>
-   <dict>
-       <key>NSExtensionActivationRule</key>
-       <string>SUBTYPE == "public.url"</string>
-   </dict>
-   ```
+If you change the App Group, also update `SharedInbox.appGroupID` in `PhilonetReadingTimer/Shared/SharedInbox.swift`, then regenerate.
 
-8. Enable App Groups (optional, for shared data):
-   - Select Project → PhilonetReadingTimer Target
-   - Signing & Capabilities
-   - + Capability
-   - App Groups
-   - Add: `group.com.yourcompany.philonet`
-   
-   Then in ShareExtension target:
-   - Repeat above steps
+### Testing the Share Extension
 
-9. Build and Run:
-   - Select iPhone simulator
-   - Product → Build (Cmd+B)
-   - Product → Run (Cmd+R)
-
-### Frameworks Required
-
-Add these in Build Phases:
-- WebKit (for web view)
-- UserNotifications (for permissions)
-
-### Testing on Device
-
-1. Connect iPhone
-2. Select device from scheme menu
-3. Product → Run (Cmd+R)
-4. Trust developer certificate if prompted
-
-### Testing Share Extension
-
-1. Open Safari on simulator/device
-2. Find any article
-3. Tap Share button
-4. Scroll down to find "Philonet Reading Timer"
-5. Tap to share URL to app
+1. Run the app once so the extension is installed.
+2. Open Safari → any article → Share → **Philonet Reader**. You may need to tap *More* to enable it.
+3. Switch back to the app. The article is imported automatically.
 
 ### Troubleshooting
 
-**Share Extension not appearing:**
-- Ensure ShareExtension target is embedded
-- Check Info.plist NSExtensionActivationRule
-- Restart simulator
-
-**URL scheme not working:**
-- Verify URL scheme in Info.plist
-- Check AppDelegate URLHandler
-- Ensure scheme matches
-
-**WebKit errors:**
-- Add WebKit framework to both targets
-- Ensure WKWebView imports are present
-
-**Permissions denied:**
-- Run on simulator/device
-- Grant notification permissions when prompted
+See the Troubleshooting section in [XCODE_SETUP.md](XCODE_SETUP.md). It covers signing and App Group errors, the extension not appearing, and shared links not arriving.

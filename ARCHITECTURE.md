@@ -6,15 +6,16 @@ This document explains the architectural choices and design patterns used in Phi
 ## Data Flow
 
 ```
-Safari Share
-    ↓
-Share Extension (ShareViewController)
-    ↓
-URL Scheme (philonet-open://)
-    ↓
-App Delegate (URLHandler)
-    ↓
-Persistence Service (addArticle)
+Safari Share                         In-app "+" / philonet-open://add?url=…
+    ↓                                        ↓
+Share Extension (ShareViewController)   App .onOpenURL / AddArticleView
+    ↓                                        │
+SharedInbox.enqueue (App Group defaults)     │
+    ↓                                        │
+App becomes active →                         │
+PersistenceService.importPendingSharedArticles()
+    ↓                                        ↓
+Persistence Service (addArticle) ←───────────┘
     ↓
 ContentView (Article List)
     ↓
@@ -41,17 +42,26 @@ PersistenceService (Save to Disk)
 
 #### TimerService
 - Manages timer lifecycle: start, pause, resume, stop
-- Observes app lifecycle: pauses on background, ready to resume on foreground
-- Updates in real-time (every 1 second)
-- Syncs to disk when paused
+- Observes app lifecycle: pauses (and saves) on background/terminate; resume is manual
+- Updates every 1 second; the timer runs in `.common` run-loop mode so it keeps ticking while scrolling
+- Accumulates time across pause/resume segments, so resuming continues from the paused value
+- Every pause syncs to disk via `PersistenceService.syncReadingTimeWithMergeRules`
 
 **Design Decision**: Using app lifecycle observers ensures we never count "ghost time" when app is backgrounded.
 
 #### PersistenceService
-- Singleton pattern for consistent access
-- Stores articles as JSON in Documents folder
-- Provides merge conflict resolution interface
-- Thread-safe operations using DispatchQueue.main
+- Singleton (`PersistenceService.shared`) for the app; `init(fileURL:)` lets tests use a temp file
+- Stores articles as JSON in Documents folder; loads synchronously on init
+- Owns the single `MergeRulesEngine` instance that the Debug Panel observes
+- Ignores duplicate URLs; imports links queued by the Share Extension
+- All access happens on the main thread (called from SwiftUI and main-queue observers)
+
+#### SharedInbox (Shared/)
+- Compiled into both the app and the Share Extension
+- Queue of URL strings in `UserDefaults(suiteName: "group.com.philonet.readingtimer")`
+- Needed because extensions cannot call `UIApplication.shared.open` to launch the host app
+
+**Design Decision**: An App Group queue is the Apple-supported way to pass data from an extension to its app.
 
 **Design Decision**: JSON persistence is simple, portable, and human-readable for debugging.
 
@@ -67,11 +77,12 @@ PersistenceService (Save to Disk)
 #### ContentView
 - Main app screen with article list
 - Empty state guidance
+- "+" button to add an article by URL
 - Debug button access
 - Delete functionality with swipe
 
 #### ArticleReaderView
-- Web view for reading articles
+- Web view for reading articles (with loading indicator)
 - Timer display and controls
 - Manual pause/resume buttons
 - Debug access during reading
@@ -144,7 +155,7 @@ Documents/
 ## Security Considerations
 
 - **No Authentication**: Simple app, no user accounts
-- **URL Handling**: Validates scheme before opening
+- **URL Handling**: `philonet-open://add?url=` only accepts `http`/`https` article URLs (no `javascript:`, `file:` etc.)
 - **Sandboxing**: Uses standard Documents directory
 - **Data**: No sensitive data, URLs are user-shared
 

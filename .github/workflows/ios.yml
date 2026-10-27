@@ -1,0 +1,131 @@
+name: iOS Build, Test & Demo
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 45
+    env:
+      SCHEME: PhilonetReadingTimer
+      APP_NAME: PhilonetReadingTimer
+      BUNDLE_ID: com.philonet.readingtimer
+      # Optional: add this repo secret to auto-upload to Appetize.io
+      APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Pick an iPhone simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)["devices"]
+          ios = sorted((k for k in data if "iOS" in k), reverse=True)
+          for runtime in ios:
+              for d in data[runtime]:
+                  if d["name"].startswith("iPhone"):
+                      print(d["udid"]); sys.exit(0)
+          sys.exit(1)
+          ')
+          echo "Using simulator $UDID"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project PhilonetReadingTimer.xcodeproj \
+            -scheme "$SCHEME" \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO | tee xcodebuild-test.log
+
+      - name: Build simulator app
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project PhilonetReadingTimer.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO | tee xcodebuild-build.log
+
+      - name: Record demo in simulator
+        run: |
+          APP_PATH="build/Build/Products/Debug-iphonesimulator/$APP_NAME.app"
+          mkdir -p demo
+          xcrun simctl boot "$SIM_UDID" || true
+          xcrun simctl bootstatus "$SIM_UDID" -b
+          xcrun simctl install "$SIM_UDID" "$APP_PATH"
+
+          xcrun simctl io "$SIM_UDID" recordVideo --codec=h264 demo/demo.mp4 &
+          REC_PID=$!
+          sleep 2
+
+          xcrun simctl launch "$SIM_UDID" "$BUNDLE_ID"
+          sleep 4
+          xcrun simctl io "$SIM_UDID" screenshot demo/1-empty-list.png
+
+          # Add articles through the app's URL scheme
+          xcrun simctl openurl "$SIM_UDID" "philonet-open://add?url=https%3A%2F%2Fwww.apple.com%2Fnewsroom%2F"
+          sleep 2
+          xcrun simctl openurl "$SIM_UDID" "philonet-open://add?url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FSpeed_reading"
+          sleep 3
+          xcrun simctl io "$SIM_UDID" screenshot demo/2-articles-added.png
+
+          kill -INT $REC_PID
+          wait $REC_PID || true
+
+      - name: Package app for Appetize.io
+        run: |
+          cd build/Build/Products/Debug-iphonesimulator
+          ditto -c -k --sequesterRsrc --keepParent "$APP_NAME.app" "$GITHUB_WORKSPACE/$APP_NAME-simulator.zip"
+
+      - name: Upload to Appetize.io (optional)
+        if: ${{ env.APPETIZE_API_TOKEN != '' }}
+        env:
+          APPETIZE_PUBLIC_KEY: ${{ vars.APPETIZE_PUBLIC_KEY }}
+        run: |
+          URL="https://api.appetize.io/v1/apps"
+          if [ -n "$APPETIZE_PUBLIC_KEY" ]; then URL="$URL/$APPETIZE_PUBLIC_KEY"; fi
+          curl --fail -sS "$URL" \
+            -H "X-API-KEY: $APPETIZE_API_TOKEN" \
+            -F "file=@$APP_NAME-simulator.zip" \
+            -F "platform=ios" | tee appetize.json
+          echo "Appetize response saved to appetize.json"
+
+      - name: Upload demo (screenshots + video)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo
+          path: demo/
+          if-no-files-found: ignore
+
+      - name: Upload simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-app
+          path: ${{ env.APP_NAME }}-simulator.zip
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            xcodebuild-*.log
+            appetize.json
+          if-no-files-found: ignore

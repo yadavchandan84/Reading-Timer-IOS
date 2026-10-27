@@ -23,7 +23,9 @@ struct NotificationHelper {
     static func sendReadingCompleteNotification(article: Article, readingTime: TimeInterval) {
         let content = UNMutableNotificationContent()
         content.title = "Reading Complete"
-        content.body = "You spent \(Article(url: article.url).formattedReadingTime()) reading \(article.title ?? article.url.host() ?? "an article")"
+        var finished = article
+        finished.totalReadingTime = readingTime
+        content.body = "You spent \(finished.formattedReadingTime()) reading \(article.title ?? article.url.host ?? "an article")"
         content.sound = .default
         
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)

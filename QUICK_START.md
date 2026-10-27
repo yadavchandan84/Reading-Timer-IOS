@@ -3,63 +3,31 @@
 ## 5-Minute Setup
 
 ### Prerequisites
-- Mac with Xcode 14+ installed
+- Mac with Xcode 14+ (iOS apps can't be built on Windows/Linux)
+- XcodeGen: `brew install xcodegen`
 - iPhone or iOS simulator (15.0+)
-- This code repository
 
-### Step 1: Open Xcode
+### Step 1: Generate the Xcode project
+```bash
+cd Reading-Timer-IOS
+xcodegen generate
+open PhilonetReadingTimer.xcodeproj
 ```
-Open Xcode from Applications
-```
+This creates the app, share extension and test targets. It also generates the Info.plists, URL scheme and App Group entitlements.
 
-### Step 2: Create New Project
+### Step 2: Set signing
 ```
-File → New → Project
-Platform: iOS
-Template: App
-Name: PhilonetReadingTimer
-Interface: SwiftUI
-```
-
-### Step 3: Copy Files
-```
-Drag and drop all Swift files to Xcode project
-Maintain folder structure:
-  ├─ Models/
-  ├─ Services/
-  ├─ Views/
-  ├─ Utilities/
-  └─ ShareExtension/
+Target PhilonetReadingTimer   → Signing & Capabilities → Team
+Target PhilonetShareExtension → Signing & Capabilities → Team
 ```
 
-### Step 4: Add Frameworks
+### Step 3: Build & Run
 ```
-Project Settings → Targets → Build Phases
-Link Binary With Libraries → +
-Add: WebKit
-Add: UserNotifications
+⌘ + R   run on an iPhone simulator
+⌘ + U   run unit tests
 ```
 
-### Step 5: Configure URL Scheme
-```
-Project Settings → Info → URL Types
-Add new:
-  Identifier: philonet-open
-  Scheme: philonet-open
-```
-
-### Step 6: Create Share Extension
-```
-File → New → Target
-Choose: Share Extension
-Name: ShareExtension
-```
-
-### Step 7: Build & Run
-```
-⌘ + R (or Product → Run)
-Select iPhone 15+ simulator
-```
+See [XCODE_SETUP.md](XCODE_SETUP.md) if signing or the App Group fails.
 
 ## Key Files Reference
 
@@ -75,13 +43,11 @@ Select iPhone 15+ simulator
 
 ## Common Tasks
 
-### Testing Share Extension
+### Adding an Article
 ```
-1. Open Safari on simulator
-2. Navigate to any website
-3. Tap Share button
-4. Select "Philonet Reading Timer"
-5. Check app for new article
+In-app:   tap + on the home screen, enter a URL
+Safari:   Share → "Philonet Reader" → switch back to the app
+Terminal: xcrun simctl openurl booted "philonet-open://add?url=https%3A%2F%2Fwww.apple.com"
 ```
 
 ### Testing Background Pause
@@ -104,17 +70,20 @@ Select iPhone 15+ simulator
 
 ## Troubleshooting
 
-### "WebKit not found"
-→ Add WebKit in Build Phases
+### "xcodegen: command not found"
+→ `brew install xcodegen`
+
+### Signing / App Group error
+→ Set a Team on both targets; change bundle IDs and App Group if taken (see XCODE_SETUP.md)
 
 ### "Share Extension not appearing"
-→ Restart simulator, check Info.plist
+→ Run the main app scheme, enable "Philonet Reader" under More in the share sheet, restart simulator
 
-### "App crashes on background"
-→ Check TimerService lifecycle observers
+### Shared article doesn't show up
+→ App Group must match in both targets and `SharedInbox.appGroupID`; switch back to the app to trigger import
 
-### "Merge rules not working"
-→ Verify PersistenceService.shared is singleton
+### New file "not in scope"
+→ Put it in a source folder and re-run `xcodegen generate`
 
 ## Next Steps
 
@@ -145,22 +114,26 @@ Select iPhone 15+ simulator
 
 ### Swift Files
 ```
+project.yml                         (XcodeGen project spec)
 PhilonetReadingTimer/
-├── Models/
-│   └── Article.swift
-├── Views/
-│   ├── ContentView.swift
-│   ├── ArticleReaderView.swift
-│   └── DebugPanelView.swift
-├── Services/
-│   ├── TimerService.swift
-│   ├── PersistenceService.swift
-│   └── MergeRulesEngine.swift
-├── Utilities/
-│   └── Extensions.swift
-├── ShareExtension/
+├── PhilonetReadingTimer/           (app target)
+│   ├── Models/Article.swift
+│   ├── Views/
+│   │   ├── ContentView.swift
+│   │   ├── ArticleReaderView.swift
+│   │   └── DebugPanelView.swift
+│   ├── Services/
+│   │   ├── TimerService.swift
+│   │   ├── PersistenceService.swift
+│   │   └── MergeRulesEngine.swift
+│   ├── Utilities/Extensions.swift
+│   └── PhilonetReadingTimerApp.swift
+├── PhilonetShareExtension/         (share extension target)
 │   └── ShareViewController.swift
-└── PhilonetReadingTimerApp.swift
+├── Shared/                         (compiled into both targets)
+│   └── SharedInbox.swift
+├── PhilonetReadingTimerTests/      (unit test target)
+└── Config/                         (generated plists + entitlements)
 ```
 
 ### Data Persistence
@@ -173,7 +146,7 @@ Documents/
 ## Debugging Features
 
 ### Debug Panel (🐛)
-- **Accessible from**: Home screen, Article reader
+- **Accessible from**: Home screen (top left), Article reader (top right)
 - **Shows**:
   - Merge rule explanations
   - Merge history with timestamps
@@ -251,6 +224,8 @@ The web view supports:
 7. Create Release with demo link
 
 Commands:
+The generated `.xcodeproj` is git-ignored; `project.yml` is the source of truth.
+
 ```bash
 git init
 git add .

@@ -77,7 +77,8 @@ class MergeRulesEngineTests: XCTestCase {
     }
     
     func testCrashDetection_SmallTimeDifference() {
-        let isCrash = mergeEngine.detectLikelyCrash(memoryTime: 100, diskTime: 50)
+        // 20s difference is below the 30s threshold
+        let isCrash = mergeEngine.detectLikelyCrash(memoryTime: 100, diskTime: 80)
         XCTAssertFalse(isCrash, "Should not detect crash with <30s difference")
     }
     
@@ -101,17 +102,20 @@ class MergeRulesEngineTests: XCTestCase {
 
 class PersistenceServiceTests: XCTestCase {
     var persistenceService: PersistenceService!
+    var fileURL: URL!
     
     override func setUp() {
         super.setUp()
-        persistenceService = PersistenceService()
-        persistenceService.articles = []
+        // Isolated file so tests never touch the app's real data.
+        fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("articles-\(UUID().uuidString).json")
+        persistenceService = PersistenceService(fileURL: fileURL)
     }
     
     override func tearDown() {
-        super.tearDown()
-        persistenceService.articles = []
+        try? FileManager.default.removeItem(at: fileURL)
         persistenceService = nil
+        super.tearDown()
     }
     
     func testAddArticle() {

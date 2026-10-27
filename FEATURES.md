@@ -5,26 +5,29 @@
 ### 1. Article Sharing (Safari Integration)
 
 #### How It Works
-- Uses iOS Share Extension
-- Integrates with Safari through URL scheme
-- Saves article metadata (URL, title)
+- Uses an iOS Share Extension (separate target `PhilonetShareExtension`)
+- Hands the URL to the app through a shared App Group
+- Saves the URL; title defaults to the site's domain
 
 #### User Flow
 ```
-Safari → Share (↗️) → Philonet Reading Timer → Article Saved
+Safari → Share (↗️) → Philonet Reader → "Saved" → return to app → Article in list
 ```
 
 #### Technical Details
-- **Share Extension**: `ShareViewController.swift`
-- **URL Scheme**: `philonet-open://`
-- **Data Flow**: 
+- **Share Extension**: `PhilonetShareExtension/ShareViewController.swift`
+- **Hand-off**: `Shared/SharedInbox.swift` (App Group `group.com.philonet.readingtimer`)
+- **Data Flow**:
   1. User taps Share in Safari
-  2. Share sheet appears
-  3. User selects "Philonet Reading Timer"
-  4. Extension extracts URL
-  5. Opens app via URL scheme
-  6. AppDelegate receives URL
-  7. Article added to list
+  2. User selects "Philonet Reader"
+  3. Extension extracts the URL (or the first link in shared text)
+  4. Extension queues it with `SharedInbox.enqueue` and closes
+  5. When the app becomes active, `importPendingSharedArticles()` adds it
+  6. Duplicate URLs are ignored
+
+#### Other Ways to Add
+- **"+" button** on the home screen: enter any http/https URL
+- **URL scheme**: `philonet-open://add?url=<percent-encoded URL>`
 
 ### 2. Article Display & Web View
 
@@ -37,7 +40,8 @@ Safari → Share (↗️) → Philonet Reading Timer → Article Saved
 #### Implementation
 - Uses `WKWebView` from WebKit framework
 - Embedded in `ArticleReaderView`
-- Safe area handling for notch/dynamic island
+- Loading indicator until the page finishes loading
+- Swipe back/forward gestures for in-page navigation
 
 #### Code Location
 `ArticleReaderView.swift` → `WebViewContainer`
@@ -53,8 +57,10 @@ Safari → Share (↗️) → Philonet Reading Timer → Article Saved
 #### Smart Behavior
 - **Pause**: User taps Pause button (orange)
 - **Resume**: User taps Resume button (green)
-- **Auto-pause**: When app backgrounds
-- **Auto-resume**: Ready when user returns (manual tap needed)
+- **Auto-pause**: When app backgrounds or terminates (time is saved)
+- **Resume**: Manual tap when user returns; continues from the paused value
+- **Leaving the reader**: Pauses and saves
+- Keeps counting while you scroll the article
 
 #### UI Components
 ```
@@ -89,8 +95,8 @@ example.com        🕐 1h 23m 45s
 
 #### Interactions
 - **Tap**: Open article for reading
-- **Swipe Left**: Delete with confirmation
-- **Pull Refresh**: Manual refresh (optional)
+- **Swipe Left**: Delete
+- **"+"**: Add an article by URL
 
 ### 5. Timer Pause/Resume on Background
 
@@ -125,12 +131,11 @@ resumeTimer() on tap
 #### Implementation
 `TimerService.swift`:
 ```swift
-NotificationCenter.default.addObserver(
-    self,
-    selector: #selector(appDidEnterBackground),
-    name: UIApplication.didEnterBackgroundNotification,
-    object: nil
-)
+for name in [UIApplication.didEnterBackgroundNotification, UIApplication.willTerminateNotification] {
+    observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+        self?.pauseTimer()   // saves via merge rules
+    })
+}
 ```
 
 ### 6. Memory & Disk Persistence
@@ -158,7 +163,7 @@ Disk (Documents/articles.json)
    - Disk: no updates (performance)
 
 3. **Session Pause**
-   - Memory → Disk sync
+   - Memory → Disk sync through the merge rules
    - JSON serialization
    - File write to Documents folder
 
@@ -259,8 +264,9 @@ Timestamp: Jan 15, 2024 2:30 PM
 ```
 
 #### Debug Access Points
-- Home screen: 🐛 button (top right)
+- Home screen: 🐛 button (top left)
 - Reader view: 🐛 button (top right)
+- History and conflicts are kept in memory for the current app session
 - Fully modal presentation
 
 ### 9. Data Persistence Format

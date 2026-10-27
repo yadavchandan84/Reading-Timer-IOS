@@ -1,0 +1,104 @@
+# XcodeGen spec. On a Mac run:  brew install xcodegen && xcodegen generate
+# then open PhilonetReadingTimer.xcodeproj
+name: PhilonetReadingTimer
+
+options:
+  bundleIdPrefix: com.philonet
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    # Set your Apple team ID here (or pick it in Xcode > Signing & Capabilities)
+    DEVELOPMENT_TEAM: ""
+    TARGETED_DEVICE_FAMILY: "1,2"
+
+targets:
+  PhilonetReadingTimer:
+    type: application
+    platform: iOS
+    sources:
+      - PhilonetReadingTimer/PhilonetReadingTimer
+      - PhilonetReadingTimer/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.philonet.readingtimer
+    info:
+      path: PhilonetReadingTimer/Config/App-Info.plist
+      properties:
+        CFBundleDisplayName: Philonet Reader
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleURLTypes:
+          - CFBundleURLName: com.philonet.readingtimer
+            CFBundleURLSchemes: [philonet-open]
+    entitlements:
+      path: PhilonetReadingTimer/Config/App.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.philonet.readingtimer
+    dependencies:
+      - target: PhilonetShareExtension
+        embed: true
+      - sdk: WebKit.framework
+
+  PhilonetShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - PhilonetReadingTimer/PhilonetShareExtension
+      - PhilonetReadingTimer/Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.philonet.readingtimer.ShareExtension
+        APPLICATION_EXTENSION_API_ONLY: YES
+    info:
+      path: PhilonetReadingTimer/Config/ShareExtension-Info.plist
+      properties:
+        CFBundleDisplayName: Philonet Reader
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+    entitlements:
+      path: PhilonetReadingTimer/Config/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.philonet.readingtimer
+
+  PhilonetReadingTimerTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - PhilonetReadingTimer/PhilonetReadingTimerTests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.philonet.readingtimer.tests
+    dependencies:
+      - target: PhilonetReadingTimer
+
+schemes:
+  PhilonetReadingTimer:
+    build:
+      targets:
+        PhilonetReadingTimer: all
+        PhilonetReadingTimerTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - PhilonetReadingTimerTests

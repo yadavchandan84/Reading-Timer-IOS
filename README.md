@@ -70,9 +70,11 @@ PhilonetReadingTimer/
 │   └── DebugPanelView.swift        (Debug interface)
 ├── 📁 Utilities/
 │   └── Extensions.swift            (Helper functions)
-├── 📁 ShareExtension/
-│   └── ShareViewController.swift   (Safari share)
 └── PhilonetReadingTimerApp.swift   (App entry point)
+PhilonetShareExtension/
+└── ShareViewController.swift       (Safari share, separate target)
+Shared/
+└── SharedInbox.swift               (App Group hand-off, used by both targets)
 ```
 
 ---
@@ -80,36 +82,27 @@ PhilonetReadingTimer/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Xcode** 14.0 or later
-- **iOS** 15.0 or later
-- **macOS** 12.0 or later
+- A Mac with **Xcode 14+** (iOS apps cannot be built on Windows/Linux)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 
-### 3-Step Setup
-
-#### 1️⃣ Create Xcode Project
+### Build & Run
 ```bash
-File → New → Project → iOS → App (SwiftUI)
+xcodegen generate              # creates PhilonetReadingTimer.xcodeproj from project.yml
+open PhilonetReadingTimer.xcodeproj
 ```
+1. Select the **PhilonetReadingTimer** target → Signing & Capabilities → pick your Team.
+   Do the same for **PhilonetShareExtension**.
+2. If `com.philonet.readingtimer` is taken, change the bundle IDs and the App Group
+   (`group.com.philonet.readingtimer`) in `project.yml` **and** `SharedInbox.appGroupID`, then re-run `xcodegen generate`.
+3. Press ⌘R to run, ⌘U to run tests.
 
-#### 2️⃣ Add Files
-- Copy all Swift files maintaining folder structure
-- Check "Copy items if needed"
-- Select "Create groups"
+The project has three targets: the app, the Safari Share Extension, and unit tests.
+Info.plist and entitlements files are generated into `PhilonetReadingTimer/Config/`.
 
-#### 3️⃣ Configure & Run
-```bash
-# Add frameworks
-Project → Build Phases → Link Binary With Libraries
-→ Add: WebKit, UserNotifications
-
-# Set URL scheme
-Project → Info → URL Types → Add
-- Identifier: philonet-open
-- Scheme: philonet-open
-
-# Build & Run
-⌘ + R (or Product → Run)
-```
+### Adding articles
+- **Safari**: Share → Philonet Reader. The extension queues the link in the shared App Group; the app imports it when it next becomes active.
+- **In-app**: tap **+** and paste a URL (useful on the simulator).
+- **URL scheme**: `philonet-open://add?url=<percent-encoded URL>`
 
 ---
 
@@ -119,8 +112,8 @@ Project → Info → URL Types → Add
 ```
 1. Open Safari → Find article
 2. Tap Share button (↗️)
-3. Select "Philonet Reading Timer"
-4. Article saved to reading list ✅
+3. Select "Philonet Reader" (tap More to enable it the first time)
+4. Switch back to the app – article appears in the list ✅
 ```
 
 ### 📖 Read & Track Time
@@ -134,7 +127,7 @@ Project → Info → URL Types → Add
 
 ### 🐛 View Merge Rules
 ```
-1. Tap 🐛 debug button (top right)
+1. Tap 🐛 debug button (top left on home, top right in reader)
 2. Switch between tabs:
    - Rules: How each rule works
    - History: All merges applied
@@ -202,10 +195,8 @@ Data Safely Stored ✅
 
 ### Storage Location
 ```
-~/Library/Containers/
-  com.yourcompany.PhilonetReadingTimer/
-    Data/Documents/
-      articles.json
+<app sandbox>/Documents/articles.json
+# Simulator: xcrun simctl get_app_container booted com.philonet.readingtimer data
 ```
 
 ### Data Format
@@ -307,7 +298,7 @@ See **DEMO_VIDEO_GUIDE.md** for complete guide on creating a professional demo s
 - Swift 5.5+
 - SwiftUI (iOS 15+)
 - WebKit framework
-- UserNotifications framework
+- XcodeGen (to generate the Xcode project)
 
 ### Performance
 - **App Size**: ~50 MB

@@ -78,6 +78,7 @@ PhilonetReadingTimer/Views/
 ├── ContentView.swift
 │   ├── Article list
 │   ├── Empty state
+│   ├── Add Article sheet (+ button)
 │   ├── Delete functionality
 │   └── Debug access
 │
@@ -96,30 +97,38 @@ PhilonetReadingTimer/Views/
 
 ### Support & Extensions
 ```
-PhilonetReadingTimer/
+PhilonetReadingTimer/PhilonetReadingTimer/
 ├── Utilities/Extensions.swift
 │   ├── Date formatting
 │   ├── URL utilities
 │   ├── Notifications
 │   └── Debug logging
 │
-├── ShareExtension/ShareViewController.swift
-│   ├── Safari integration
-│   ├── URL extraction
-│   └── App launch
-│
 └── PhilonetReadingTimerApp.swift
     ├── App entry point
-    ├── App delegate setup
-    ├── URL scheme handling
-    └── WebKit configuration
+    ├── URL scheme handling (philonet-open://add?url=…)
+    └── Imports shared links when the app becomes active
+
+PhilonetReadingTimer/PhilonetShareExtension/ShareViewController.swift
+    ├── Safari integration (separate target)
+    ├── URL / text-link extraction
+    └── Queues link via SharedInbox
+
+PhilonetReadingTimer/Shared/SharedInbox.swift
+    └── App Group queue shared by app + extension
+```
+
+### Project Configuration
+```
+project.yml                  XcodeGen spec: targets, Info.plists, entitlements, scheme
+PhilonetReadingTimer/Config/ Generated Info.plists and .entitlements
 ```
 
 ### Testing
 ```
 PhilonetReadingTimerTests/
 └── PhilonetReadingTimerTests.swift
-    ├── MergeRulesEngineTests (7 tests)
+    ├── MergeRulesEngineTests (6 tests)
     │   ├── Rule 1 - Backward prevention
     │   ├── Rule 2 - Double counting
     │   ├── Rule 3 - Normal case
@@ -150,20 +159,20 @@ PhilonetReadingTimerTests/
 3. Build and run
 
 #### ...understand the merge rules
-1. Read section 7 in [README.md](README.md)
+1. Read "How Merge Rules Work" in [README.md](README.md)
 2. Read [ARCHITECTURE.md](ARCHITECTURE.md) "Data Consistency Strategy"
 3. Study `MergeRulesEngine.swift` code
 4. Look at tests in `PhilonetReadingTimerTests.swift`
 5. Run app and open debug panel
 
 #### ...understand the background pause behavior
-1. Read section "Smart Timer Management" in [README.md](README.md)
+1. Read section "Smart Timer" in [README.md](README.md)
 2. Read [FEATURES.md](FEATURES.md) section 5
 3. Study `TimerService.swift` - lifecycle observers
 4. Test on simulator or device
 
 #### ...test the features
-1. Follow checklist in [XCODE_SETUP.md](XCODE_SETUP.md) "Testing Checklist"
+1. Follow "Step 4: Try it out" in [XCODE_SETUP.md](XCODE_SETUP.md)
 2. Run unit tests: ⌘ + U
 3. Test manually on simulator
 4. Test on device if available
@@ -187,11 +196,11 @@ PhilonetReadingTimerTests/
 
 | Category | Count | Details |
 |----------|-------|---------|
-| **Swift Files** | 8 | Models, Services, Views, Utilities, Extensions |
-| **Test Files** | 1 | 11 test cases total |
-| **Doc Files** | 9 | README + 8 guides |
-| **Lines of Code** | ~2,000 | Production-ready |
-| **Test Cases** | 11 | 100% coverage of merge rules |
+| **Swift Files** | 11 | App target (9), Share Extension (1), Shared (1) |
+| **Test Files** | 1 | 10 test cases total |
+| **Doc Files** | 11 | README + 10 guides |
+| **Targets** | 3 | App, Share Extension, Unit Tests |
+| **Test Cases** | 10 | All 3 merge rules, crash detection, persistence |
 | **Features** | 10+ | Complete and documented |
 
 ---
@@ -295,13 +304,12 @@ Click on test in editor → Diamond icon
 - Explanation: README.md section 7
 - Details: ARCHITECTURE.md "Data Consistency Strategy"
 - Code: MergeRulesEngine.swift
-- Tests: PhilonetReadingTimerTests.swift lines 40-80
+- Tests: PhilonetReadingTimerTests.swift (`MergeRulesEngineTests`)
 - UI: DebugPanelView.swift
 
 **Timer Behavior:**
-- Explanation: README.md section "Smart Timer Management"
-- Code: TimerService.swift
-- Lifecycle: PhilonetReadingTimerApp.swift
+- Explanation: README.md section "Smart Timer"
+- Code: TimerService.swift (lifecycle observers live here)
 
 **Storage:**
 - Design: ARCHITECTURE.md "File Storage"
@@ -323,8 +331,8 @@ Click on test in editor → Diamond icon
 ### Problem: "How do merge rules work?"
 → Read ARCHITECTURE.md + Study MergeRulesEngine.swift
 
-### Problem: "Build error - WebKit not found"
-→ Check [XCODE_SETUP.md](XCODE_SETUP.md) "Configure Frameworks"
+### Problem: "Signing / App Group error"
+→ Check [XCODE_SETUP.md](XCODE_SETUP.md) "Step 2: Signing" and "Troubleshooting"
 
 ### Problem: "Share extension not showing"
 → Check [XCODE_SETUP.md](XCODE_SETUP.md) "Troubleshooting"

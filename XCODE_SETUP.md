@@ -1,234 +1,112 @@
-# Implementation Guide for Xcode
+# Xcode Setup Guide
 
-## Step 1: Create Xcode Project
+The Xcode project is generated from `project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+You don't create targets or edit Info.plist by hand. The `.xcodeproj` is not committed (see `.gitignore`), so regenerate it after cloning or after editing `project.yml`.
 
-### New Project Setup
-```
-File → New → Project
-├─ Platform: iOS
-├─ Application type: App
-├─ Project Name: PhilonetReadingTimer
-├─ Team: Your Development Team
-├─ Organization Identifier: com.yourcompany
-├─ Interface: SwiftUI
-├─ Life Cycle: SwiftUI App
-└─ Where: Select your workspace folder
-```
+> iOS apps can only be built on macOS. On Windows/Linux you can edit the code, but building and running needs a Mac with Xcode.
 
-## Step 2: Add Files to Project
+## Requirements
 
-### Add Swift Files to Main Target
+| Tool | Version |
+|------|---------|
+| macOS | 12+ |
+| Xcode | 14+ |
+| XcodeGen | 2.35+ (`brew install xcodegen`) |
+| iOS deployment target | 15.0 |
 
-1. **Models Group**
-   - Right-click PhilonetReadingTimer → New Group → "Models"
-   - Drag `Article.swift` into Models
-   - Uncheck "Copy items if needed" (already in folder)
+## Step 1: Generate the project
 
-2. **Services Group**
-   - Right-click PhilonetReadingTimer → New Group → "Services"
-   - Drag these files:
-     - `MergeRulesEngine.swift`
-     - `PersistenceService.swift`
-     - `TimerService.swift`
-
-3. **Views Group**
-   - Right-click PhilonetReadingTimer → New Group → "Views"
-   - Drag these files:
-     - `ContentView.swift`
-     - `ArticleReaderView.swift`
-     - `DebugPanelView.swift`
-
-4. **Utilities Group**
-   - Right-click PhilonetReadingTimer → New Group → "Utilities"
-   - Drag `Extensions.swift`
-
-5. **Root Level**
-   - Drag `PhilonetReadingTimerApp.swift` (replace existing)
-
-## Step 3: Configure Frameworks
-
-### Add WebKit Framework
-1. Select Project → PhilonetReadingTimer Target
-2. Build Phases → Link Binary With Libraries
-3. Click `+` and search for "WebKit"
-4. Select WebKit.framework → Add
-
-### Add UserNotifications Framework
-1. Repeat above process
-2. Search for "UserNotifications"
-3. Select UserNotifications.framework → Add
-
-## Step 4: Configure Deployment Target
-
-1. Select Project → PhilonetReadingTimer Target
-2. General tab
-3. Set Minimum Deployment to iOS 15.0 or higher
-
-## Step 5: Create Share Extension
-
-### New Target
-1. File → New → Target
-2. Choose "Share Extension"
-3. Name: `ShareExtension`
-4. Embed in: `PhilonetReadingTimer`
-5. Create
-
-### Add Share Extension Code
-1. Delete auto-generated ShareViewController.swift
-2. Drag our `ShareViewController.swift` from ShareExtension folder
-3. Ensure it's added to ShareExtension target
-
-## Step 6: Configure URL Scheme
-
-### In Main App
-1. Select Project → PhilonetReadingTimer Target
-2. Info tab (or open Info.plist)
-3. Scroll to "URL Types" (may need to create)
-4. Click `+` to add URL Type:
-   - Identifier: `philonet-open`
-   - URL Scheme: `philonet-open`
-
-## Step 7: Configure App Delegate
-
-### Enable App Delegate Integration
-1. In `PhilonetReadingTimerApp.swift`, the `@UIApplicationDelegateAdaptor` is already configured
-2. The AppDelegate handles URL scheme routing
-
-## Step 8: Share Extension Configuration
-
-### Configure Info.plist
-1. Select ShareExtension target
-2. Info.plist
-3. Add these keys:
-
-```xml
-<key>NSExtensionAttributes</key>
-<dict>
-    <key>NSExtensionActivationRule</key>
-    <string>SUBTYPE == "public.url"</string>
-</dict>
+```bash
+cd Reading-Timer-IOS
+xcodegen generate
+open PhilonetReadingTimer.xcodeproj
 ```
 
-## Step 9: Build Settings
+This creates three targets:
 
-### Verify Build Settings
-1. Select Project
-2. Build Settings
-3. Search for "Swift Language Version"
-4. Ensure it's Swift 5.5 or later
+| Target | Type | Sources |
+|--------|------|---------|
+| `PhilonetReadingTimer` | iOS app | `PhilonetReadingTimer/PhilonetReadingTimer/`, `PhilonetReadingTimer/Shared/` |
+| `PhilonetShareExtension` | Share Extension (embedded in the app) | `PhilonetReadingTimer/PhilonetShareExtension/`, `PhilonetReadingTimer/Shared/` |
+| `PhilonetReadingTimerTests` | Unit tests | `PhilonetReadingTimer/PhilonetReadingTimerTests/` |
 
-## Step 10: Build and Run
+It also generates these files in `PhilonetReadingTimer/Config/`:
+- `App-Info.plist`: includes the `philonet-open` URL scheme and launch screen
+- `ShareExtension-Info.plist`: share-services extension point, accepts web URLs and text
+- `App.entitlements` / `ShareExtension.entitlements`: App Group `group.com.philonet.readingtimer`
 
-### Build
-```
-⌘ + B (or Product → Build)
-```
+WebKit is linked automatically. No other frameworks need to be added.
 
-### Run on Simulator
-```
-⌘ + R (or Product → Run)
-```
+## Step 2: Signing
 
-Select iPhone 15 or later simulator.
+1. Select the project → target **PhilonetReadingTimer** → **Signing & Capabilities**.
+2. Tick *Automatically manage signing* and choose your **Team**.
+3. Repeat for **PhilonetShareExtension**.
 
-## Step 11: Test Share Extension
+To avoid redoing this after every regenerate, put your team ID in `project.yml` (`DEVELOPMENT_TEAM`).
 
-### On Simulator
-1. Open Simulator
-2. Open Safari
-3. Navigate to any website
-4. Tap Share button (↗️)
-5. Scroll down in share sheet
-6. Look for "Philonet Reading Timer"
-7. Tap it to share
+### If the bundle ID or App Group is already taken
+Bundle IDs and App Group IDs must be unique per Apple account. To change them:
+1. In `project.yml`, change `com.philonet.readingtimer` (all three targets) and `group.com.philonet.readingtimer` (both entitlements).
+2. In `PhilonetReadingTimer/Shared/SharedInbox.swift`, set `appGroupID` to the same group.
+3. Run `xcodegen generate` again.
 
-### On Device
-1. Trust developer certificate (if prompted)
-2. Repeat steps above
+## Step 3: Build and run
 
-## Step 12: Create Test Target
+- Pick the **PhilonetReadingTimer** scheme and an iPhone simulator.
+- ⌘B to build, ⌘R to run, ⌘U to run unit tests.
 
-### Add Tests
-1. File → New → Target
-2. Choose "Unit Testing Bundle"
-3. Name: `PhilonetReadingTimerTests`
-4. Add `PhilonetReadingTimerTests.swift`
+## Step 4: Try it out
 
-### Run Tests
-```
-⌘ + U (or Product → Test)
-```
+### Add an article
+- **In-app**: tap **+** on the home screen and enter a URL. This is the quickest way on the simulator.
+- **From Safari**: open a page → Share → **Philonet Reader** (you may need to scroll the app row and tap *More*). Then switch back to the app. The article is imported when the app becomes active.
+- **URL scheme**: run this in Terminal while the simulator is running:
+  ```bash
+  xcrun simctl openurl booted "philonet-open://add?url=https%3A%2F%2Fwww.apple.com%2Fnewsroom"
+  ```
+
+### Timer
+1. Open an article. The timer starts.
+2. Tap Pause or Resume. Each pause saves the time through the merge rules.
+3. Press Home (⇧⌘H in the simulator). The timer pauses and saves.
+4. Return to the app. The timer stays paused until you tap Resume.
+
+### Debug panel
+Tap 🐛 (top left on the home screen, top right in the reader). The **History** tab lists every merge, and **Conflicts** lists Rule 1/Rule 2 hits.
+
+## How sharing works
+
+App extensions can't open their host app (`UIApplication.shared` is unavailable). Instead:
+
+1. `ShareViewController` extracts the URL and calls `SharedInbox.enqueue(_:)`. That writes it to `UserDefaults(suiteName: appGroupID)`.
+2. When the app becomes active, `PersistenceService.importPendingSharedArticles()` drains the queue and adds the articles.
 
 ## Troubleshooting
 
-### Share Extension Not Appearing
+**`xcodegen: command not found`**
+Install it with `brew install xcodegen`, or download a release from GitHub.
 
-**Problem**: Share extension doesn't show in Share menu
-**Solutions**:
-1. Verify ShareExtension is embedded (Build Phases → Embed Content)
-2. Check Info.plist NSExtensionActivationRule
-3. Restart simulator (or kill and reopen Safari)
-4. Rebuild project (⌘ + B)
+**Signing error: "Personal development teams do not support the App Groups capability"**
+Some free Apple accounts can't use App Groups. You can still run the app: remove the `entitlements` blocks from `project.yml`, regenerate, and add articles with **+** or the URL scheme. Safari sharing then won't reach the app.
 
-### Compilation Errors
+**Share extension not listed in Safari**
+- Make sure you ran the **PhilonetReadingTimer** scheme (it embeds the extension), not the extension alone.
+- In the share sheet, tap *More* and enable **Philonet Reader**.
+- Restart the simulator if the extension list is stale.
 
-**Problem**: "WebKit not found"
-**Solution**: Ensure WebKit is added to Link Binary With Libraries
+**Shared article doesn't appear**
+- Both targets must have the same App Group, and it must match `SharedInbox.appGroupID`.
+- The import runs when the app becomes active. Switch away and back if the app was already open.
 
-**Problem**: "Cannot find 'PersistenceService' in scope"
-**Solution**: Verify all Swift files are added to target (Build Phases → Compile Sources)
+**"Cannot find X in scope" after adding files**
+Add new files under one of the source folders listed above, then re-run `xcodegen generate`. Files added only through Xcode's UI are lost the next time you regenerate.
 
-### Runtime Errors
+**Articles not persisting**
+Data is stored at `Documents/articles.json` in the app sandbox. Deleting the app clears it. Check the Xcode console for `Error saving articles`.
 
-**Problem**: "URL scheme not working"
-**Solutions**:
-1. Verify URL scheme in Info.plist
-2. Check AppDelegate handles URL: `application(_:open:options:) -> Bool`
-3. Verify scheme name matches
+## Device testing
 
-**Problem**: "Articles not persisting"
-**Solutions**:
-1. Check Documents folder permissions
-2. Verify PersistenceService initialization
-3. Check file permissions in app sandbox
-
-### Simulator Issues
-
-**Problem**: "App crashes on background"
-**Solution**: Check app lifecycle handling in TimerService
-
-**Problem**: "No simulator devices available"
-**Solution**: 
-1. Xcode → Preferences → Platforms
-2. Ensure iOS is installed
-3. Add simulator: Xcode → Preferences → Devices
-
-## Next Steps
-
-1. ✅ Project setup complete
-2. 📱 Run on simulator to test
-3. 🔗 Test URL sharing
-4. 📊 Review debug panel
-5. 🎥 Record demo video
-
-## Advanced Configuration
-
-### For Device Testing
-
-1. Select Device from Scheme
-2. Plug in iPhone
-3. Trust developer certificate when prompted
-4. Run (⌘ + R)
-
-### For Release Build
-
-1. Edit Scheme → Run → Release
-2. This uses optimized build
-3. Closer to App Store behavior
-
-### Enable Signing
-
-1. Select Project → PhilonetReadingTimer
-2. Signing & Capabilities
-3. Select Team
-4. Let Xcode manage signing
+1. Connect an iPhone and select it as the run destination.
+2. Make sure signing is set for both targets (Step 2).
+3. Press ⌘R. On first launch, trust the developer certificate under Settings → General → VPN & Device Management.
